@@ -132,6 +132,10 @@ tfoot td { padding: 12px 16px; background: #f8fafc; font-weight: 700; border-top
 .logic-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 13px 18px; margin-bottom: 20px; font-size: 13px; color: #0c4a6e; line-height: 1.7; }
 .logic-box strong { color: #075985; }
 
+/* ── Small page note ── */
+.mini-note { font-size: 11.5px; color: #94a3b8; margin: -4px 0 16px; line-height: 1.6; }
+.mini-note strong { color: #64748b; }
+
 /* ── Data status bar ── */
 .data-status { display: flex; align-items: center; gap: 9px; padding: 13px 20px; border-top: 1px solid rgba(255,255,255,.08); }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
@@ -442,6 +446,7 @@ tfoot td { padding: 12px 16px; background: #f8fafc; font-weight: 700; border-top
     </div>
     <div id="drp-p5"></div>
     <div class="conn-banner"></div>
+    <div class="mini-note" data-i18n-html="p5.notes"></div>
     <div class="kpi-grid" id="kpi5"></div>
     <div class="panel">
       <div class="panel-header" data-i18n="p5.byCardType">Settlement by Card Type</div>
@@ -544,6 +549,10 @@ const I18N = {
   'p3.matchResults':  { en: 'Match Results', zh: '配對結果' },
   'p4.unmatchedTitle':{ en: 'Unmatched INCLEARING Entries', zh: '未配對的 INCLEARING 交易' },
   'p4.fullStatement': { en: 'Full Bank Statement', zh: '完整銀行月結單' },
+  'p5.notes': {
+    en: '<strong>Notes:</strong> “Matched” = within ₱1 of the Maya record · Fri–Sun settle on Monday · a bank holiday may show as a one-off variance.',
+    zh: '<strong>注意：</strong>「已對賬」＝與 Maya 記錄相差 ₱1 內 · 週五至日於週一結算 · 銀行假期可能顯示為單次差額。'
+  },
   'p5.byCardType':    { en: 'Settlement by Card Type', zh: '按卡別結算' },
   'p5.batchVsBank':   { en: 'Daily Settlement Cross-Check (bank vs Maya record)', zh: '每日結算核對（銀行 vs Maya 記錄）' },
 
