@@ -449,23 +449,6 @@ tfoot td { padding: 12px 16px; background: #f8fafc; font-weight: 700; border-top
     <div class="mini-note" data-i18n-html="p5.notes"></div>
     <div class="kpi-grid" id="kpi5"></div>
     <div class="panel">
-      <div class="panel-header" data-i18n="p5.byCardType">Settlement by Card Type</div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th data-i18n="col.cardType">Card Type</th>
-            <th class="num" data-i18n="col.transactions">Transactions</th>
-            <th class="num" data-i18n="col.gross">Gross Amount</th>
-            <th class="num" data-i18n="col.feeRate">Fee Rate</th>
-            <th class="num" data-i18n="col.fee">Fee</th>
-            <th class="num" data-i18n="col.netExpected">Net Expected</th>
-          </tr></thead>
-          <tbody id="tb5"></tbody>
-          <tfoot id="tf5"></tfoot>
-        </table>
-      </div>
-    </div>
-    <div class="panel">
       <div class="panel-header" data-i18n="p5.batchVsBank">Settlement Batch vs Bank Credits</div>
       <div class="table-wrap">
         <table>
@@ -1727,35 +1710,6 @@ const MAYA_BADGE = {
 function renderP5() {
   const range = getRange('p5');
   const hasMaya = mayaDaily.length > 0;
-
-  // ── Settlement by Card Type (whole record) ──
-  const tbody = document.getElementById('tb5');
-  tbody.innerHTML = '';
-  if (!cardTypes.length) {
-    tbody.innerHTML = emptyRow(6, t('empty.p5card'));
-    document.getElementById('tf5').innerHTML = '';
-  } else {
-    let totTxn = 0, totGross = 0, totFee = 0, totNet = 0;
-    cardTypes.slice().sort((a, b) => b.gross - a.gross).forEach(r => {
-      const fee = r.gross - r.net;
-      totTxn += r.txns; totGross += r.gross; totFee += fee; totNet += r.net;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><strong>${r.type}</strong></td>
-        <td class="num">${r.txns.toLocaleString()}</td>
-        <td class="num">${P(r.gross)}</td>
-        <td class="num">${(r.rate*100).toFixed(2)}%</td>
-        <td class="num" style="color:#ef4444">−${P(fee)}</td>
-        <td class="num" style="color:#10b981"><strong>${P(r.net)}</strong></td>
-      `;
-      tbody.appendChild(tr);
-    });
-    document.getElementById('tf5').innerHTML = `
-      <tr><td>${t('word.total')}</td><td class="num">${totTxn.toLocaleString()}</td><td class="num">${P(totGross)}</td>
-      <td class="num muted">—</td><td class="num" style="color:#ef4444">−${P(totFee)}</td>
-      <td class="num" style="color:#10b981">${P(totNet)}</td></tr>
-    `;
-  }
 
   // ── Reconciliation (range-filtered by deposit date) ──
   const recon = mayaReconciliation().filter(r => inRange(r.d, range));
