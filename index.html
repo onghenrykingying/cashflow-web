@@ -466,6 +466,7 @@ tfoot td { padding: 12px 16px; background: #f8fafc; font-weight: 700; border-top
         <table>
           <thead><tr>
             <th data-i18n="col.settlementDate">Settlement Date</th>
+            <th data-i18n="col.covers">Covers (txn days)</th>
             <th class="num" data-i18n="col.netExpected">Net Expected</th>
             <th class="num" data-i18n="col.bankReceived">Bank Received</th>
             <th class="num" data-i18n="col.variance">Variance</th>
@@ -522,7 +523,7 @@ const I18N = {
   'p4.title': { en: 'Unmatched Bank Transactions', zh: '未配對銀行交易' },
   'p4.desc':  { en: 'Bank INCLEARING entries that have no matching amount in the Collection Record.', zh: '在收款記錄中找不到對應金額的銀行 INCLEARING 交易。' },
   'p5.title': { en: 'PayMaya Match', zh: 'PayMaya 對賬' },
-  'p5.desc':  { en: 'Net-of-fee per card type, matched to bank CRS RDIST settlement credits.', zh: '按卡別計算扣費後淨額，並對賬銀行 CRS RDIST 結算入賬。' },
+  'p5.desc':  { en: 'Each bank CRS RDIST deposit is cross-checked against the Maya record — Fri+Sat+Sun roll into Monday.', zh: '每筆銀行 CRS RDIST 存款會與 Maya 記錄核對——週五、六、日合併至週一。' },
 
   // Logic boxes (HTML)
   'p3.logic': {
@@ -544,7 +545,7 @@ const I18N = {
   'p4.unmatchedTitle':{ en: 'Unmatched INCLEARING Entries', zh: '未配對的 INCLEARING 交易' },
   'p4.fullStatement': { en: 'Full Bank Statement', zh: '完整銀行月結單' },
   'p5.byCardType':    { en: 'Settlement by Card Type', zh: '按卡別結算' },
-  'p5.batchVsBank':   { en: 'Settlement Batch vs Bank Credits', zh: '結算批次與銀行入賬對比' },
+  'p5.batchVsBank':   { en: 'Daily Settlement Cross-Check (bank vs Maya record)', zh: '每日結算核對（銀行 vs Maya 記錄）' },
 
   // Table columns
   'col.date':            { en: 'Date', zh: '日期' },
@@ -578,6 +579,7 @@ const I18N = {
   'col.settlementDate':  { en: 'Settlement Date', zh: '結算日期' },
   'col.bankReceived':    { en: 'Bank Received', zh: '銀行收到' },
   'col.variance':        { en: 'Variance', zh: '差額' },
+  'col.covers':          { en: 'Covers (txn days)', zh: '涵蓋（交易日）' },
 
   // Date picker presets
   'preset.today':        { en: 'Today', zh: '今天' },
@@ -651,6 +653,11 @@ const I18N = {
   'kpi.foundInCR':     { en: 'Found in Collection Record', zh: '在收款記錄中找到' },
   'kpi.pmReceived':    { en: 'PayMaya Received (bank)', zh: 'PayMaya 收到（銀行）' },
   'kpi.crsInstapay':   { en: 'CRS RDIST + INSTAPAY credits', zh: 'CRS RDIST + INSTAPAY 入賬' },
+  'kpi.mayaReceivedSub':{ en: 'CRS RDIST credits in range', zh: '範圍內 CRS RDIST 入賬' },
+  'kpi.mayaExpectedSub':{ en: 'From Maya record (net of fees)', zh: '來自 Maya 記錄（扣費後淨額）' },
+  'kpi.mayaVarianceSub':{ en: 'Received − expected', zh: '收到 − 預計' },
+  'kpi.mayaFlags':     { en: 'Flagged Settlements', zh: '異常結算' },
+  'kpi.mayaFlagsSub':  { en: 'Variance / missing / no-record', zh: '差額／缺失／無記錄' },
   'kpi.settlementDays':{ en: 'Settlement Days', zh: '結算日數' },
   'kpi.daysWithPm':    { en: 'Days with PayMaya credits', zh: '有 PayMaya 入賬的日數' },
   'kpi.netExpected':   { en: 'Net Expected', zh: '預計淨額' },
@@ -678,6 +685,9 @@ const I18N = {
   'badge.varianceFlag':{ en: '⚠ Variance', zh: '⚠ 有差額' },
   'badge.awaitingReport':{ en: 'Awaiting report', zh: '待報表' },
   'badge.unmatched': { en: 'unmatched', zh: '未配對' },
+  'badge.missing':   { en: '🔴 Deposit missing', zh: '🔴 未見存款' },
+  'badge.pending':   { en: 'Pending', zh: '待入賬' },
+  'badge.unexpected':{ en: '⚠ No Maya record', zh: '⚠ 無 Maya 記錄' },
 
   // Misc cell text
   'cell.sameDay':  { en: 'Same day', zh: '當天' },
@@ -714,8 +724,9 @@ const I18N = {
   'empty.p3nfOk':   { en: '✓ All recorded cheques in this range were found clearing in the bank.', zh: '✓ 此範圍內所有已記錄支票均已在銀行兌現。' },
   'empty.p4unmOk':  { en: 'No unmatched entries in this date range ✓', zh: '此日期範圍內沒有未配對交易 ✓' },
   'empty.p4stmt':   { en: 'No bank transactions in this date range.', zh: '此日期範圍內沒有銀行交易。' },
-  'empty.p5card':   { en: 'Per-card-type breakdown needs the PayMaya settlement report (not yet connected).', zh: '按卡別的明細需要 PayMaya 結算報表（尚未連接）。' },
-  'empty.p5batch':  { en: 'No PayMaya credits in the selected date range.', zh: '所選日期範圍內沒有 PayMaya 入賬。' },
+  'empty.p5card':   { en: 'No PayMaya record for this branch.', zh: '此分店沒有 PayMaya 記錄。' },
+  'empty.p5batch':  { en: 'No PayMaya settlements in the selected date range.', zh: '所選日期範圍內沒有 PayMaya 結算。' },
+  'empty.p5maya':   { en: 'No PayMaya record connected for this branch (Xyris only).', zh: '此分店未連接 PayMaya 記錄（僅 Xyris）。' },
 
   // Page 1 panel header
   'ph1.coverage':   { en: 'Cheque Coverage', zh: '支票覆蓋' },
@@ -777,8 +788,9 @@ const schedule         = [];  // cheque clearing totals per day (from Collection
 const depsMap          = {};  // editable expected deposits, keyed by date
 const collectionRecord = [];  // raw CR entries { d, amount }
 const bankStatement    = [];  // raw bank rows { d, desc, type, debit, credit, chequeNo }
-const cardTypes        = [];  // PayMaya per-card-type breakdown (separate source — not yet wired)
+const cardTypes        = [];  // PayMaya per-card-type breakdown (from the Maya record)
 const batches          = [];  // PayMaya settlement batches (derived from bank PayMaya credits)
+const mayaDaily        = [];  // Maya per-day net totals { d, net, gross, fee, count } (Xyris only)
 
 // ══════════════════════════════════════════════════════════
 // MATCHING ALGORITHM
@@ -986,6 +998,20 @@ function applyLiveData(data) {
       .sort(([a],[b]) => b.localeCompare(a))
       .map(([date, rcv]) => ({ d: date, netExp: null, bankRcv: rcv }))
   );
+
+  // Pay Maya transaction record (aggregated server-side; Xyris only).
+  // daily = per-day net totals; byCard = per-card-type breakdown.
+  mayaDaily.splice(0, mayaDaily.length);
+  cardTypes.splice(0, cardTypes.length);
+  if (data.maya && data.maya.daily) {
+    mayaDaily.push(...data.maya.daily.map(r => ({
+      d: r.date, net: r.net, gross: r.gross, fee: r.fee, count: r.count,
+    })));
+    (data.maya.byCard || []).forEach(c => cardTypes.push({
+      type: c.card, txns: c.count, gross: c.gross, net: c.net,
+      rate: c.gross ? (c.gross - c.net) / c.gross : 0,
+    }));
+  }
 
   dataConnected = true;
   rerunMatching();
@@ -1622,26 +1648,80 @@ function renderP4() {
 
 // ══════════════════════════════════════════════════════════
 // PAGE 5 — PayMaya Match
+//
+// Cross-checks each bank Maya deposit (CRS RDIST credit) against the Maya
+// transaction record. Maya settles daily, but Fri+Sat+Sun roll into Monday
+// (bank operations), so a deposit on day D reconciles against the Maya net of:
+//   • Monday  → Fri + Sat + Sun (the 3 prior days)
+//   • Tue–Fri → the previous day
+// Days with no Maya transactions produce no record and expect no deposit.
 // ══════════════════════════════════════════════════════════
 
-function renderP5() {
-  const range          = getRange('p5');
-  const filteredBatches = batches.filter(r => inRange(r.d, range));
+const DOW3 = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const dow3 = iso => DOW3[new Date(iso + 'T00:00:00').getDay()];
+const MAYA_TOL = 1;   // ₱ tolerance for a "matched" settlement
 
-  let totTxn = 0, totGross = 0, totFee = 0, totNet = 0;
+// Bank-deposit date expected for a Maya transaction date (weekend → next Monday).
+function mayaDepositDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  const dow = d.getDay();                    // 0 Sun … 6 Sat
+  const add = dow === 5 ? 3 : dow === 6 ? 2 : dow === 0 ? 1 : 1;  // Fri+3, Sat+2, Sun+1, else +1
+  d.setDate(d.getDate() + add);
+  return d.toISOString().slice(0, 10);
+}
+
+// Reconcile Maya record vs bank Maya credits → one row per deposit date.
+function mayaReconciliation() {
+  const exp = {};   // depositDate -> { expected, covers:[txnDates] }
+  mayaDaily.forEach(r => {
+    if (r.net <= 0) return;                   // zero-transaction day → nothing to deposit
+    const dep = mayaDepositDate(r.d);
+    (exp[dep] = exp[dep] || { expected: 0, covers: [] });
+    exp[dep].expected += r.net;
+    exp[dep].covers.push(r.d);
+  });
+  const rcv = {};   // depositDate -> bank credit received
+  bankStatement.forEach(r => {
+    if (r.type === 'paymaya' && r.credit > 0) rcv[r.d] = (rcv[r.d] || 0) + r.credit;
+  });
+  const dates = Array.from(new Set([...Object.keys(exp), ...Object.keys(rcv)])).sort();
+  return dates.map(D => {
+    const expected = exp[D] ? exp[D].expected : 0;
+    const covers   = exp[D] ? exp[D].covers.slice().sort() : [];
+    const received = rcv[D] || 0;
+    const hasExp = expected > 0, hasRcv = D in rcv;
+    const variance = received - expected;
+    let status;
+    if (hasExp && hasRcv) status = Math.abs(variance) <= MAYA_TOL ? 'matched' : 'variance';
+    else if (hasRcv)      status = 'unexpected';                  // bank credit, no Maya record
+    else                  status = (D <= TODAY) ? 'missing' : 'pending';
+    return { d: D, covers, expected, received, variance, status };
+  });
+}
+
+const MAYA_BADGE = {
+  matched:    { cls: 'b-collected', key: 'badge.matched' },
+  variance:   { cls: 'b-notfound',  key: 'badge.varianceFlag' },
+  missing:    { cls: 'b-notfound',  key: 'badge.missing' },
+  pending:    { cls: 'b-none',      key: 'badge.pending' },
+  unexpected: { cls: 'b-unmatched', key: 'badge.unexpected' },
+};
+
+function renderP5() {
+  const range = getRange('p5');
+  const hasMaya = mayaDaily.length > 0;
+
+  // ── Settlement by Card Type (whole record) ──
   const tbody = document.getElementById('tb5');
   tbody.innerHTML = '';
-
   if (!cardTypes.length) {
-    // Per-card-type fee breakdown comes from the PayMaya terminal report,
-    // which is not one of the two connected sheets.
     tbody.innerHTML = emptyRow(6, t('empty.p5card'));
     document.getElementById('tf5').innerHTML = '';
   } else {
-    cardTypes.forEach(r => {
-      const fee = r.gross * r.rate;
-      const net = r.gross - fee;
-      totTxn += r.txns; totGross += r.gross; totFee += fee; totNet += net;
+    let totTxn = 0, totGross = 0, totFee = 0, totNet = 0;
+    cardTypes.slice().sort((a, b) => b.gross - a.gross).forEach(r => {
+      const fee = r.gross - r.net;
+      totTxn += r.txns; totGross += r.gross; totFee += fee; totNet += r.net;
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><strong>${r.type}</strong></td>
@@ -1649,7 +1729,7 @@ function renderP5() {
         <td class="num">${P(r.gross)}</td>
         <td class="num">${(r.rate*100).toFixed(2)}%</td>
         <td class="num" style="color:#ef4444">−${P(fee)}</td>
-        <td class="num" style="color:#10b981"><strong>${P(net)}</strong></td>
+        <td class="num" style="color:#10b981"><strong>${P(r.net)}</strong></td>
       `;
       tbody.appendChild(tr);
     });
@@ -1660,31 +1740,39 @@ function renderP5() {
     `;
   }
 
-  // KPIs based on the live bank PayMaya credits in the selected range
-  const totalReceived = filteredBatches.reduce((s, b) => s + b.bankRcv, 0);
+  // ── Reconciliation (range-filtered by deposit date) ──
+  const recon = mayaReconciliation().filter(r => inRange(r.d, range));
+  const totReceived = recon.reduce((s, r) => s + r.received, 0);
+  const totExpected = recon.reduce((s, r) => s + r.expected, 0);
+  const variance    = totReceived - totExpected;
+  const flags       = recon.filter(r => r.status === 'variance' || r.status === 'missing' || r.status === 'unexpected').length;
+
   document.getElementById('kpi5').innerHTML = `
-    <div class="kpi green"><div class="kpi-label">${t('kpi.pmReceived')}</div><div class="kpi-value">${P(totalReceived)}</div><div class="kpi-sub">${t('kpi.crsInstapay')}</div></div>
-    <div class="kpi blue"><div class="kpi-label">${t('kpi.settlementDays')}</div><div class="kpi-value">${filteredBatches.length}</div><div class="kpi-sub">${t('kpi.daysWithPm')}</div></div>
-    <div class="kpi"><div class="kpi-label">${t('kpi.netExpected')}</div><div class="kpi-value muted">—</div><div class="kpi-sub">${t('kpi.needsPmReport')}</div></div>
-    <div class="kpi"><div class="kpi-label">${t('kpi.variance')}</div><div class="kpi-value muted">—</div><div class="kpi-sub">${t('kpi.needsPmReport')}</div></div>
+    <div class="kpi green"><div class="kpi-label">${t('kpi.pmReceived')}</div><div class="kpi-value">${P(totReceived)}</div><div class="kpi-sub">${t('kpi.mayaReceivedSub')}</div></div>
+    <div class="kpi blue"><div class="kpi-label">${t('kpi.netExpected')}</div><div class="kpi-value">${hasMaya ? P(totExpected) : '<span class="muted">—</span>'}</div><div class="kpi-sub">${t('kpi.mayaExpectedSub')}</div></div>
+    <div class="kpi ${variance < 0 ? 'red' : 'green'}"><div class="kpi-label">${t('kpi.variance')}</div><div class="kpi-value">${hasMaya ? PS(variance) : '<span class="muted">—</span>'}</div><div class="kpi-sub">${t('kpi.mayaVarianceSub')}</div></div>
+    <div class="kpi ${flags ? 'red' : 'green'}"><div class="kpi-label">${t('kpi.mayaFlags')}</div><div class="kpi-value">${hasMaya ? flags : '<span class="muted">—</span>'}</div><div class="kpi-sub">${t('kpi.mayaFlagsSub')}</div></div>
   `;
 
   const tb = document.getElementById('tb5b');
   tb.innerHTML = '';
-  if (!filteredBatches.length) {
-    tb.innerHTML = emptyRow(5, t('empty.p5batch'));
+  if (!recon.length) {
+    tb.innerHTML = emptyRow(6, hasMaya ? t('empty.p5batch') : t('empty.p5maya'));
   } else {
-    filteredBatches.forEach(b => {
-      const hasExpected = b.netExp !== null && b.netExp !== undefined;
-      const variance = hasExpected ? b.bankRcv - b.netExp : null;
-      const matched  = hasExpected && Math.abs(variance) < 1;
+    recon.slice().sort((a, b) => a.d < b.d ? 1 : -1).forEach(r => {
+      const b = MAYA_BADGE[r.status];
+      const covers = r.covers.length
+        ? r.covers.map(c => `${dow3(c)} ${fmtShort(c)}`).join(', ')
+        : '<span class="muted">—</span>';
+      const showVar = r.status === 'variance' || r.status === 'unexpected';
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${fmtDate(b.d)}</td>
-        <td class="num">${hasExpected ? P(b.netExp) : '<span class="muted">—</span>'}</td>
-        <td class="num">${P(b.bankRcv)}</td>
-        <td class="num ${hasExpected && variance < 0 ? 'neg' : ''}">${!hasExpected ? '<span class="muted">—</span>' : (matched ? '<span class="muted">—</span>' : PS(variance))}</td>
-        <td>${!hasExpected ? `<span class="badge b-none">${t('badge.awaitingReport')}</span>` : (matched ? `<span class="badge b-collected">${t('badge.matched')}</span>` : `<span class="badge b-notfound">${t('badge.varianceFlag')}</span>`)}</td>
+        <td><strong>${fmtDate(r.d)}</strong> <span class="days-chip">${dow3(r.d)}</span></td>
+        <td>${covers}</td>
+        <td class="num">${r.expected > 0 ? P(r.expected) : '<span class="muted">—</span>'}</td>
+        <td class="num">${r.received > 0 ? P(r.received) : '<span class="muted">—</span>'}</td>
+        <td class="num ${showVar && r.variance < 0 ? 'neg' : ''}">${showVar ? PS(r.variance) : '<span class="muted">—</span>'}</td>
+        <td><span class="badge ${b.cls}">${t(b.key)}</span></td>
       `;
       tb.appendChild(tr);
     });
