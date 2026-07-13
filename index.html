@@ -1224,7 +1224,7 @@ function getRange(pid) {
 function computeRange(preset) {
   const now = new Date();
   const y = now.getFullYear(), m = now.getMonth();
-  const fmt = d => d.toISOString().slice(0, 10);
+  const fmt = d => isoLocal(d);
   const monday = d => { const r = new Date(d); const dow = r.getDay(); r.setDate(r.getDate() - (dow === 0 ? 6 : dow - 1)); return r; };
   const ago   = n => { const d = new Date(now); d.setDate(d.getDate() - n); return fmt(d); };
   const ahead = n => { const d = new Date(now); d.setDate(d.getDate() + n); return fmt(d); };
@@ -1268,7 +1268,7 @@ function emptyRow(cols, msg) {
 // OUTSTANDING RECEIVABLES
 // ══════════════════════════════════════════════════════════
 
-const TODAY = new Date().toISOString().slice(0, 10);
+const TODAY = isoLocal(new Date());
 
 function monthStart() {
   const n = new Date();
@@ -1356,6 +1356,14 @@ const Pexact = n => '₱' + Math.abs(n).toLocaleString('en-PH', { minimumFractio
 const fmtDate  = s => new Date(s+'T00:00:00').toLocaleDateString('en-PH', { month:'short', day:'2-digit', year:'numeric' });
 const fmtShort = s => new Date(s+'T00:00:00').toLocaleDateString('en-PH', { month:'short', day:'2-digit' });
 const daysBetween = (d1, d2) => Math.round((new Date(d2+'T00:00:00') - new Date(d1+'T00:00:00')) / 86400000);
+
+// Local-timezone YYYY-MM-DD. Using toISOString() here would convert to UTC and,
+// at UTC+8 (Manila), shift local midnight back to the previous calendar day.
+function isoLocal(d) {
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
 
 // Group all bank credits (deposits + PayMaya + transfers in) by date
 function buildDailyCredits() {
@@ -1676,7 +1684,7 @@ function mayaDepositDate(iso) {
   const dow = d.getDay();                    // 0 Sun … 6 Sat
   const add = dow === 5 ? 3 : dow === 6 ? 2 : dow === 0 ? 1 : 1;  // Fri+3, Sat+2, Sun+1, else +1
   d.setDate(d.getDate() + add);
-  return d.toISOString().slice(0, 10);
+  return isoLocal(d);
 }
 
 // Reconcile Maya record vs bank Maya credits → one row per deposit date.
