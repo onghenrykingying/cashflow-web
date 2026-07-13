@@ -533,8 +533,8 @@ const I18N = {
   'p4.unmatchedTitle':{ en: 'Unmatched INCLEARING Entries', zh: '未配對的 INCLEARING 交易' },
   'p4.fullStatement': { en: 'Full Bank Statement', zh: '完整銀行月結單' },
   'p5.notes': {
-    en: '<strong>Notes:</strong> “Matched” = within ₱1 of the Maya record · Fri–Sun settle on Monday · a bank holiday may show as a one-off variance.',
-    zh: '<strong>注意：</strong>「已對賬」＝與 Maya 記錄相差 ₱1 內 · 週五至日於週一結算 · 銀行假期可能顯示為單次差額。'
+    en: '<strong>Notes:</strong> “Matched” = within ₱1 of the Maya record · weekends &amp; PH holidays roll to the next banking day · duplicate bank lines are flagged.',
+    zh: '<strong>注意：</strong>「已對賬」＝與 Maya 記錄相差 ₱1 內 · 週末及菲律賓假期順延至下一銀行營業日 · 重複的銀行入賬會被標示。'
   },
   'p5.byCardType':    { en: 'Settlement by Card Type', zh: '按卡別結算' },
   'p5.batchVsBank':   { en: 'Daily Settlement Cross-Check (bank vs Maya record)', zh: '每日結算核對（銀行 vs Maya 記錄）' },
@@ -680,6 +680,7 @@ const I18N = {
   'badge.missing':   { en: '🔴 Deposit missing', zh: '🔴 未見存款' },
   'badge.pending':   { en: 'Pending', zh: '待入賬' },
   'badge.unexpected':{ en: '⚠ No Maya record', zh: '⚠ 無 Maya 記錄' },
+  'badge.duplicate': { en: '⚠ Duplicate deposit', zh: '⚠ 重複入賬' },
 
   // Misc cell text
   'cell.sameDay':  { en: 'Same day', zh: '當天' },
@@ -1661,12 +1662,30 @@ const DOW3 = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const dow3 = iso => DOW3[new Date(iso + 'T00:00:00').getDay()];
 const MAYA_TOL = 1;   // ₱ tolerance for a "matched" settlement
 
-// Bank-deposit date expected for a Maya transaction date (weekend → next Monday).
+// Philippine non-banking days. When the bank is closed, the Maya settlement
+// rolls to the next banking day — exactly like a weekend — so Monday (or the
+// day after a holiday) absorbs the backlog. Regular holidays + fixed special
+// non-working days for 2026–2029. Islamic holidays (Eid'l Fitr / Eid'l Adha)
+// are proclaimed each year by moon sighting — the dates here are best estimates;
+// verify and adjust them annually. Add any ad-hoc "bridge" holidays here too.
+const PH_HOLIDAYS = new Set([
+  // 2026
+  '2026-01-01', '2026-03-20', '2026-04-02', '2026-04-03', '2026-04-09', '2026-05-01', '2026-05-27', '2026-06-12', '2026-08-21', '2026-08-31', '2026-11-01', '2026-11-30', '2026-12-08', '2026-12-25', '2026-12-30', '2026-12-31',
+  // 2027
+  '2027-01-01', '2027-03-10', '2027-03-25', '2027-03-26', '2027-04-09', '2027-05-01', '2027-05-16', '2027-06-12', '2027-08-21', '2027-08-30', '2027-11-01', '2027-11-30', '2027-12-08', '2027-12-25', '2027-12-30', '2027-12-31',
+  // 2028
+  '2028-01-01', '2028-02-26', '2028-04-09', '2028-04-13', '2028-04-14', '2028-05-01', '2028-05-05', '2028-06-12', '2028-08-21', '2028-08-28', '2028-11-01', '2028-11-30', '2028-12-08', '2028-12-25', '2028-12-30', '2028-12-31',
+  // 2029
+  '2029-01-01', '2029-02-14', '2029-03-29', '2029-03-30', '2029-04-09', '2029-04-24', '2029-05-01', '2029-06-12', '2029-08-21', '2029-08-27', '2029-11-01', '2029-11-30', '2029-12-08', '2029-12-25', '2029-12-30', '2029-12-31',
+]);
+
+const isBankDay = d => { const w = d.getDay(); return w !== 0 && w !== 6 && !PH_HOLIDAYS.has(isoLocal(d)); };
+
+// Bank-deposit date for a Maya transaction: the next banking day after it —
+// skips weekends AND PH holidays, so a holiday's settlement rolls forward too.
 function mayaDepositDate(iso) {
   const d = new Date(iso + 'T00:00:00');
-  const dow = d.getDay();                    // 0 Sun … 6 Sat
-  const add = dow === 5 ? 3 : dow === 6 ? 2 : dow === 0 ? 1 : 1;  // Fri+3, Sat+2, Sun+1, else +1
-  d.setDate(d.getDate() + add);
+  do { d.setDate(d.getDate() + 1); } while (!isBankDay(d));
   return isoLocal(d);
 }
 
@@ -1680,10 +1699,20 @@ function mayaReconciliation() {
     exp[dep].expected += r.net;
     exp[dep].covers.push(r.d);
   });
-  const rcv = {};   // depositDate -> bank credit received
+  // Bank credits per date, keeping individual amounts so we can spot duplicates
+  // (the same CRS RDIST amount posted twice on one day inflates "received").
+  const rcvList = {};
   bankStatement.forEach(r => {
-    if (r.type === 'paymaya' && r.credit > 0) rcv[r.d] = (rcv[r.d] || 0) + r.credit;
+    if (r.type === 'paymaya' && r.credit > 0) (rcvList[r.d] = rcvList[r.d] || []).push(r.credit);
   });
+  const rcv = {}, dup = {};
+  Object.keys(rcvList).forEach(d => {
+    const arr = rcvList[d];
+    rcv[d] = arr.reduce((s, x) => s + x, 0);
+    const seen = {};
+    dup[d] = arr.some(x => { const k = Math.round(x * 100); if (seen[k]) return true; seen[k] = 1; return false; });
+  });
+
   const dates = Array.from(new Set([...Object.keys(exp), ...Object.keys(rcv)])).sort();
   return dates.map(D => {
     const expected = exp[D] ? exp[D].expected : 0;
@@ -1692,9 +1721,10 @@ function mayaReconciliation() {
     const hasExp = expected > 0, hasRcv = D in rcv;
     const variance = received - expected;
     let status;
-    if (hasExp && hasRcv) status = Math.abs(variance) <= MAYA_TOL ? 'matched' : 'variance';
-    else if (hasRcv)      status = 'unexpected';                  // bank credit, no Maya record
-    else                  status = (D <= TODAY) ? 'missing' : 'pending';
+    if (dup[D])                status = 'duplicate';             // identical bank line posted twice
+    else if (hasExp && hasRcv) status = Math.abs(variance) <= MAYA_TOL ? 'matched' : 'variance';
+    else if (hasRcv)           status = 'unexpected';            // bank credit, no Maya record
+    else                       status = (D <= TODAY) ? 'missing' : 'pending';
     return { d: D, covers, expected, received, variance, status };
   });
 }
@@ -1705,6 +1735,7 @@ const MAYA_BADGE = {
   missing:    { cls: 'b-notfound',  key: 'badge.missing' },
   pending:    { cls: 'b-none',      key: 'badge.pending' },
   unexpected: { cls: 'b-unmatched', key: 'badge.unexpected' },
+  duplicate:  { cls: 'b-unmatched', key: 'badge.duplicate' },
 };
 
 function renderP5() {
@@ -1716,7 +1747,7 @@ function renderP5() {
   const totReceived = recon.reduce((s, r) => s + r.received, 0);
   const totExpected = recon.reduce((s, r) => s + r.expected, 0);
   const variance    = totReceived - totExpected;
-  const flags       = recon.filter(r => r.status === 'variance' || r.status === 'missing' || r.status === 'unexpected').length;
+  const flags       = recon.filter(r => ['variance','missing','unexpected','duplicate'].includes(r.status)).length;
 
   document.getElementById('kpi5').innerHTML = `
     <div class="kpi green"><div class="kpi-label">${t('kpi.pmReceived')}</div><div class="kpi-value">${P(totReceived)}</div><div class="kpi-sub">${t('kpi.mayaReceivedSub')}</div></div>
@@ -1735,7 +1766,7 @@ function renderP5() {
       const covers = r.covers.length
         ? r.covers.map(c => `${dow3(c)} ${fmtShort(c)}`).join(', ')
         : '<span class="muted">—</span>';
-      const showVar = r.status === 'variance' || r.status === 'unexpected';
+      const showVar = r.status === 'variance' || r.status === 'unexpected' || r.status === 'duplicate';
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><strong>${fmtDate(r.d)}</strong> <span class="days-chip">${dow3(r.d)}</span></td>
